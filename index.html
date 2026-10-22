@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>♥ | Contador de amistad★</title>
+<link rel="icon" href="Da.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Inter',sans-serif;background:radial-gradient(circle at center,#1e1b4b 0%,#0f172a 100%);min-height:100vh;min-height:100dvh;overflow:hidden}
+button{font-family:inherit}
+
+/* ---------- Contador ---------- */
+.bubble-card{background:rgba(255,255,255,.04);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.12);box-shadow:0 30px 60px -12px rgba(0,0,0,.5),0 0 40px -10px rgba(99,102,241,.2)}
+.pulse-sec{animation:softPulse 1s infinite ease-in-out}
+@keyframes softPulse{0%,100%{opacity:1}50%{opacity:.6}}
+.time-unit{transition:all .3s ease-in-out}
+.num{transition:font-size .6s}
+#counter-wrap{position:fixed;left:50%;top:50%;width:calc(100% - 2rem);max-width:48rem;transform:translate(-50%,-50%);z-index:20;transition:top .7s cubic-bezier(.4,0,.2,1),transform .7s cubic-bezier(.4,0,.2,1),max-width .7s cubic-bezier(.4,0,.2,1)}
+/* Al reproducir: el contador sube y se compacta */
+body.playing #counter-wrap{top:1rem;transform:translate(-50%,0);max-width:30rem}
+body.playing .bubble-card{padding:.9rem 1.25rem;border-radius:1.5rem}
+body.playing .counter-title{margin-bottom:.5rem}
+body.playing #counter-container{gap:.5rem 1.25rem}
+body.playing .time-unit{min-width:50px}
+body.playing .num{font-size:1.6rem;line-height:2rem}
+body.playing .lbl{margin-top:.1rem;font-size:9px}
+@media(max-width:639px){body.playing #counter-wrap{top:4.75rem}}
+
+/* ---------- Letras (centro) ---------- */
+#lyrics-stage{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:9rem 1.25rem;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .5s,visibility 0s .5s}
+body.playing #lyrics-stage{opacity:1;visibility:visible;transition:opacity .7s .4s,visibility 0s}
+@media(max-width:639px){#lyrics-stage{padding:12rem 1rem 9.5rem}}
+.lyrics-container{width:100%;max-width:700px;max-height:100%;overflow-y:auto;pointer-events:auto;display:flex;flex-direction:column;align-items:center;text-align:center;scrollbar-width:none;transition:all .2s ease-in-out}
+.lyrics-container>:first-child{margin-top:auto}
+.lyrics-container>:last-child{margin-bottom:auto}
+.lyrics-container.fading{opacity:0;transform:scale(.95)}
+.lyric-line{padding:6px 0;margin:3px 0;font-size:1.4em;font-weight:600;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.9),0 0 20px rgba(255,255,255,.7),2px 2px 4px rgba(0,0,0,.9);line-height:1.5;opacity:0;transform:translateY(10px) scale(.95);transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;letter-spacing:.5px}
+.lyric-line::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:2px;background:linear-gradient(90deg,transparent,#fff,transparent);transition:width .3s}
+.lyric-line.visible{opacity:1;transform:none;animation:lyricGlow 1s ease-in-out}
+.lyric-line.visible::before{width:100%}
+@keyframes lyricGlow{50%{text-shadow:0 0 20px #fff,0 0 30px rgba(255,255,255,.9),0 0 40px rgba(135,206,250,.6),2px 2px 4px rgba(0,0,0,.9);transform:scale(1.05)}}
+@media(max-width:768px){.lyric-line{font-size:1.2em}}
+@media(max-width:480px){.lyric-line{font-size:1.1em}}
+
+/* ---------- Control de reproducción (abajo) ---------- */
+#player-bar{position:fixed;left:50%;bottom:max(1rem,env(safe-area-inset-bottom));width:calc(100% - 2rem);max-width:30rem;padding:.9rem 1.25rem .8rem;border-radius:1.5rem;background:rgba(255,255,255,.05);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.12);box-shadow:0 30px 60px -12px rgba(0,0,0,.5);z-index:30;transform:translate(-50%,150%);opacity:0;pointer-events:none;transition:transform .7s cubic-bezier(.4,0,.2,1),opacity .5s}
+body.playing #player-bar{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.pb-top{display:flex;justify-content:space-between;align-items:baseline;font-size:.75rem}
+#bar-title{font-weight:600;letter-spacing:.05em;color:#fff}
+#time-display{color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums}
+.seek{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;--p:0%}
+.seek::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:linear-gradient(90deg,#818cf8 var(--p),rgba(255,255,255,.18) var(--p))}
+.seek::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:#fff;box-shadow:0 0 10px rgba(129,140,248,.8)}
+.seek::-moz-range-track{height:4px;border-radius:99px;background:rgba(255,255,255,.18)}
+.seek::-moz-range-progress{height:4px;border-radius:99px;background:#818cf8}
+.seek::-moz-range-thumb{width:14px;height:14px;border:none;border-radius:50%;background:#fff}
+.pb-btns{display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-top:.1rem}
+.cbtn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);cursor:pointer;transition:all .3s}
+.cbtn:hover{background:rgba(255,255,255,.25);transform:scale(1.1)}
+.cbtn svg{width:18px;height:18px;fill:currentColor}
+.cbtn.main{width:52px;height:52px;background:linear-gradient(135deg,#6366f1,#4f46e5);border-color:rgba(165,180,252,.5);box-shadow:0 6px 24px rgba(99,102,241,.45)}
+.cbtn.main svg{width:22px;height:22px}
+
+/* ---------- Botón ♪ y menú desplegable (arriba a la derecha) ---------- */
+.fab{position:fixed;top:max(1rem,env(safe-area-inset-top));right:1rem;z-index:50;width:48px;border-radius:24px;overflow:hidden;background:rgba(15,23,42,.55);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.15);box-shadow:0 10px 30px rgba(0,0,0,.4);transition:width .45s cubic-bezier(.4,0,.2,1)}
+.fab.open{width:min(20rem,calc(100vw - 2rem))}
+body.is-playing .fab:not(.open){animation:ring 2s infinite}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(129,140,248,.55)}100%{box-shadow:0 0 0 14px rgba(129,140,248,0)}}
+.fab-head{position:relative;display:flex;align-items:center;justify-content:flex-end;height:46px}
+.fab-title{position:absolute;left:1rem;top:50%;transform:translateY(-50%);pointer-events:none;font-size:.7rem;letter-spacing:.25em;text-transform:uppercase;color:#a5b4fc;white-space:nowrap;opacity:0;transition:opacity .2s}
+.fab.open .fab-title{opacity:1;transition-delay:.2s}
+.fab-btn{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#c7d2fe;cursor:pointer;transition:color .3s,transform .45s}
+.fab-btn svg{width:22px;height:22px;fill:currentColor}
+.fab.open .fab-btn{color:#fff;transform:rotate(360deg)}
+.fab-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.4,0,.2,1)}
+.fab.open .fab-panel{grid-template-rows:1fr}
+.fab-inner{min-height:0;overflow:hidden;justify-self:end;width:calc(min(20rem,100vw - 2rem) - 2px);visibility:hidden;transition:visibility 0s .45s}
+.fab.open .fab-inner{visibility:visible;transition-delay:0s}
+.song-list{list-style:none;padding:0 .5rem .5rem}
+.song-row{width:100%;display:flex;align-items:center;gap:.75rem;padding:.7rem .75rem;border-radius:1rem;text-align:left;color:#e2e8f0;font-weight:600;font-size:.9rem;cursor:pointer;transition:background .2s}
+.song-row:hover,.song-item.open .song-row{background:rgba(255,255,255,.08)}
+.song-n{width:1.6rem;height:1.6rem;flex:none;border-radius:50%;background:rgba(99,102,241,.25);color:#c7d2fe;font-size:.7rem;display:flex;align-items:center;justify-content:center}
+.song-item.current .song-name{color:#a5b4fc}
+.chev{margin-left:auto;color:#94a3b8;transition:transform .3s}
+.song-item.open .chev{transform:rotate(90deg)}
+.song-desc{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s}
+.song-item.open .song-desc{grid-template-rows:1fr}
+.song-desc>div{min-height:0;overflow:hidden;visibility:hidden;transition:visibility 0s .35s}
+.song-item.open .song-desc>div{visibility:visible;transition-delay:0s}
+.song-desc p{padding:.6rem .75rem .25rem;font-size:.8rem;line-height:1.55;color:#94a3b8}
+.song-play{margin:.5rem .75rem .6rem;padding:.5rem 1rem;border-radius:999px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem;cursor:pointer}
+.song-play svg{width:14px;height:14px;fill:currentColor}
+</style>
+</head>
+<body class="text-slate-100">
+
+<!-- Contador (centrado al entrar) -->
+<div id="counter-wrap">
+  <div class="bubble-card rounded-3xl md:rounded-[2.5rem] p-8 md:p-12 w-full text-center transition-all duration-500">
+    <h1 class="counter-title text-xs md:text-sm font-semibold uppercase tracking-[0.3em] text-indigo-300/80 mb-8">Tiempo Transcurrido</h1>
+    <div id="counter-container" class="flex flex-wrap items-center justify-center gap-6 md:gap-8">
+      <div id="unit-years" class="time-unit flex flex-col items-center min-w-[70px]"><span id="years" class="num text-4xl md:text-5xl font-black text-white tracking-tight">0</span><span class="lbl text-[11px] font-medium uppercase tracking-wider text-slate-400 mt-2">Años</span></div>
+      <div id="unit-months" class="time-unit flex flex-col items-center min-w-[70px]"><span id="months" class="num text-4xl md:text-5xl font-black text-white tracking-tight">0</span><span class="lbl text-[11px] font-medium uppercase tracking-wider text-slate-400 mt-2">Meses</span></div>
+      <div id="unit-days" class="time-unit flex flex-col items-center min-w-[70px]"><span id="days" class="num text-4xl md:text-5xl font-black text-white tracking-tight">0</span><span class="lbl text-[11px] font-medium uppercase tracking-wider text-slate-400 mt-2">Días</span></div>
+      <div id="unit-hours" class="time-unit flex flex-col items-center min-w-[70px]"><span id="hours" class="num text-4xl md:text-5xl font-black text-white tracking-tight">00</span><span class="lbl text-[11px] font-medium uppercase tracking-wider text-slate-400 mt-2">Horas</span></div>
+      <div id="unit-minutes" class="time-unit flex flex-col items-center min-w-[70px]"><span id="minutes" class="num text-4xl md:text-5xl font-black text-white tracking-tight">00</span><span class="lbl text-[11px] font-medium uppercase tracking-wider text-slate-400 mt-2">Minutos</span></div>
+      <div id="unit-seconds" class="time-unit flex flex-col items-center min-w-[70px]"><span id="seconds" class="num text-4xl md:text-5xl font-black text-indigo-400 tracking-tight pulse-sec">00</span><span class="lbl text-[11px] font-medium uppercase tracking-wider text-indigo-300/80 mt-2">Segundos</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Letras al centro -->
+<div id="lyrics-stage"><div id="lyricsContainer" class="lyrics-container"></div></div>
+
+<!-- Control de reproducción abajo -->
+<div id="player-bar">
+  <div class="pb-top"><span id="bar-title"></span><span id="time-display">0:00 / 0:00</span></div>
+  <input id="seek" class="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Posición de la canción">
+  <div class="pb-btns">
+    <button id="btn-restart" class="cbtn" aria-label="Reiniciar"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12l8.5 6V6z"/></svg></button>
+    <button id="btn-play" class="cbtn main" aria-label="Reproducir / pausar"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+    <button id="btn-close" class="cbtn" aria-label="Cerrar reproductor"><svg viewBox="0 0 24 24"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>
+  </div>
+</div>
+
+<!-- Botón ♪ + menú -->
+<div id="fab" class="fab">
+  <div class="fab-head">
+    <span class="fab-title">Canciones</span>
+    <button id="fab-btn" class="fab-btn" aria-label="Abrir menú de canciones" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg></button>
+  </div>
+  <div class="fab-panel"><div class="fab-inner"><ul id="song-list" class="song-list"></ul></div></div>
+</div>
+
+<audio id="audioPlayer" preload="metadata"></audio>
+
+<script>
+// =========================================================================
+// CONTADOR — fecha de inicio "YYYY-MM-DDTHH:mm:ss"
+// =========================================================================
+const FECHA_INICIO = new Date("2026-10-20T17:46:00");
+const $ = id => document.getElementById(id);
+const unitYears = $('unit-years'), unitMonths = $('unit-months');
+
+function calculateExactTime(s, e) {
+    let years = e.getFullYear() - s.getFullYear(), months = e.getMonth() - s.getMonth(),
+        days = e.getDate() - s.getDate(), hours = e.getHours() - s.getHours(),
+        minutes = e.getMinutes() - s.getMinutes(), seconds = e.getSeconds() - s.getSeconds();
+    if (seconds < 0) { seconds += 60; minutes--; }
+    if (minutes < 0) { minutes += 60; hours--; }
+    if (hours < 0) { hours += 24; days--; }
+    if (days < 0) { days += new Date(e.getFullYear(), e.getMonth(), 0).getDate(); months--; }
+    if (months < 0) { months += 12; years--; }
+    return { years, months, days, hours, minutes, seconds };
+}
+const padZero = n => String(n).padStart(2, '0');
+
+function updateCounter() {
+    const now = new Date();
+    if (FECHA_INICIO > now) {
+        unitYears.classList.add('hidden'); unitMonths.classList.add('hidden');
+        $('days').textContent = "0"; $('hours').textContent = "00";
+        $('minutes').textContent = "00"; $('seconds').textContent = "00";
+        return;
+    }
+    const d = calculateExactTime(FECHA_INICIO, now);
+    unitYears.classList.toggle('hidden', d.years === 0);
+    unitMonths.classList.toggle('hidden', d.months === 0);
+    $('years').textContent = d.years;
+    $('months').textContent = d.months;
+    $('days').textContent = d.days;
+    $('hours').textContent = padZero(d.hours);
+    $('minutes').textContent = padZero(d.minutes);
+    $('seconds').textContent = padZero(d.seconds);
+}
+setInterval(updateCounter, 1000);
+updateCounter();
+
+// =========================================================================
+// CANCIONES — ambas usan el mismo motor de letras de pru.html
+// time = milisegundos · stanzas = índice (dentro de lyrics) donde empieza cada estrofa
+// =========================================================================
+const SONGS = [
+  {
+    title: "Como tú",
+    src: "comotu.mp3",
+    description: "Una canción sobre admirar tanto a alguien que quieres ser mejor para esa persona y aprender a amar como ella lo hace.",
+    stanzas: [0, 1, 5, 10, 11, 15, 19, 23, 27, 28],
+    lyrics: [
+      { time: 0, text: "" },
+      { time: 10500, text: "Si pudiera comenzar a ser" },
+      { time: 15000, text: "La mitad de lo que crees de mí" },
+      { time: 18000, text: "Cualquier cosa, podría hacer" },
+      { time: 22000, text: "Y podría aprender a amar" },
+
+      { time: 28000, text: "Cuando veo que actúas así" },
+      { time: 32000, text: "Me pregunto cuándo volverás" },
+      { time: 35450, text: "Cualquier cosa, podría hacer" },
+      { time: 39000, text: "Y podría aprender a amar" },
+      { time: 43700, text: "Como tú" },
+
+      { time: 50500, text: "Como, como tú" },
+
+      { time: 59500, text: "Siempre creí que sería malo" },
+      { time: 64500, text: "Y ahora sé que es verdad" },
+      { time: 68000, text: "Porque tú eres tan bueno" },
+      { time: 72000, text: "Y no soy como tú" },
+
+      { time: 76700, text: "Te has ido hoy" },
+      { time: 78000, text: "Y yo te adoro" },
+      { time: 81500, text: "Quisiera saber" },
+      { time: 85500, text: "¿Qué te hace pensar que, especial, soy?" },
+
+      { time: 95000, text: "Si pudiera comenzar a ser" },
+      { time: 99500, text: "Algo que esté bien para ti" },
+      { time: 103000, text: "Cualquier cosa, podría hacer" },
+      { time: 107000, text: "Y podría aprender a amar" },
+
+      { time: 112500, text: "Cuando veo que actúas así" },
+      { time: 117100, text: "Me pregunto cuándo volverás" },
+      { time: 120600, text: "Cualquier cosa, podría hacer" },
+      { time: 124700, text: "Y podría aprender a amar como tú" },
+
+      { time: 136600, text: "Como tú" },
+	  
+      { time: 145400, text: "Amarme como tú" }
+    ]
+  },
+  {
+    // EDITAR: título, archivo de audio, descripción y letras de la canción 2
+    title: "Creep",
+    src: "creep.mp3",
+    description: "Escribe aquí la descripción de tu segunda canción.",
+    stanzas: [0, 1],
+    lyrics: [
+      { time: 0, text: "" },
+      { time: 5000, text: "Primera línea de tu letra" },
+      { time: 9000, text: "Segunda línea de tu letra" },
+      { time: 13000, text: "Tercera línea de tu letra" }
+    ]
+  }
+];
+
+// ---------- Elementos ----------
+const audio = $('audioPlayer'), lyricsEl = $('lyricsContainer'), seek = $('seek'),
+      timeEl = $('time-display'), btnPlay = $('btn-play'), fab = $('fab'), fabBtn = $('fab-btn');
+const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+
+let current = null, stanzaIdx = -1, lastVisible = -1, renderTimer = null, dragging = false;
+
+const fmt = s => { if (!isFinite(s)) s = 0; return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
+
+// ---------- Motor de letras (de pru.html) ----------
+function stanzaLines(i) {
+    const S = current.stanzas, L = current.lyrics;
+    if (i < 0 || i >= S.length) return [];
+    return L.slice(S[i], i + 1 < S.length ? S[i + 1] : L.length);
+}
+function renderStanza(i) {
+    lyricsEl.innerHTML = '';
+    const start = i >= 0 ? current.stanzas[i] : 0;
+    stanzaLines(i).forEach((l, k) => {
+        const p = document.createElement('p');
+        p.className = 'lyric-line';
+        p.textContent = l.text;
+        p.dataset.index = start + k;
+        lyricsEl.appendChild(p);
+    });
+}
+function resetLyrics() {
+    clearTimeout(renderTimer);
+    lyricsEl.classList.remove('fading');
+    renderStanza(0);
+    stanzaIdx = 0; lastVisible = -1;
+    const first = lyricsEl.querySelector('[data-index="0"]');
+    if (first) { first.classList.add('visible'); lastVisible = 0; }
+}
+function syncLyrics() {
+    const t = audio.currentTime * 1000, L = current.lyrics, S = current.stanzas;
+
+    // Fin de la canción: 2 s después de la última línea se ocultan las letras
+    if (t > L[L.length - 1].time + 2000) {
+        if (!lyricsEl.classList.contains('fading')) { lyricsEl.classList.add('fading'); stanzaIdx = -1; lastVisible = -1; }
+        return;
+    }
+    // 1. Estrofa actual
+    let n = -1;
+    for (let i = 0; i < S.length; i++) {
+        const next = i + 1 < S.length ? L[S[i + 1]].time : Infinity;
+        if (t >= L[S[i]].time && t < next) { n = i; break; }
+    }
+    if (n !== stanzaIdx) {
+        lyricsEl.classList.add('fading');
+        clearTimeout(renderTimer);
+        renderTimer = setTimeout(() => { renderStanza(n); lyricsEl.classList.remove('fading'); lastVisible = -1; }, 150);
+        stanzaIdx = n;
+    }
+    // 2. Líneas activas dentro de la estrofa
+    if (stanzaIdx !== -1 && !lyricsEl.classList.contains('fading')) {
+        const lines = stanzaLines(stanzaIdx);
+        let latest = -1;
+        for (let i = 0; i < lines.length; i++) { if (t >= lines[i].time) latest = S[stanzaIdx] + i; else break; }
+        if (latest > lastVisible) {
+            for (let i = lastVisible + 1; i <= latest; i++) {
+                const el = lyricsEl.querySelector(`[data-index="${i}"]`);
+                if (el) { el.classList.add('visible'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            }
+            lastVisible = latest;
+        } else if (latest < lastVisible) { // se retrocedió dentro de la misma estrofa
+            for (let i = latest + 1; i <= lastVisible; i++) {
+                const el = lyricsEl.querySelector(`[data-index="${i}"]`);
+                if (el) el.classList.remove('visible');
+            }
+            lastVisible = latest;
+        }
+    }
+}
+
+// ---------- Control de reproducción ----------
+function setP() { seek.style.setProperty('--p', seek.value / 10 + '%'); }
+function ui() {
+    const d = audio.duration, t = audio.currentTime;
+    timeEl.textContent = `${fmt(t)} / ${fmt(d)}`;
+    if (!dragging) { seek.value = isFinite(d) && d > 0 ? t / d * 1000 : 0; setP(); }
+}
+function loadSong(s) {
+    current = s;
+    audio.src = s.src;
+    $('bar-title').textContent = s.title;
+    items.forEach((li, k) => li.classList.toggle('current', SONGS[k] === s));
+    resetLyrics(); ui();
+}
+function playSong(s) {
+    if (current !== s) loadSong(s);
+    document.body.classList.add('playing');
+    audio.play().catch(() => {});
+}
+
+btnPlay.onclick = () => { if (current) audio.paused ? audio.play().catch(() => {}) : audio.pause(); };
+$('btn-restart').onclick = () => { if (!current) return; audio.currentTime = 0; if (audio.paused) audio.play().catch(() => {}); };
+$('btn-close').onclick = () => {
+    audio.pause(); audio.currentTime = 0;
+    document.body.classList.remove('playing');
+    ui(); setTimeout(() => { if (current && !document.body.classList.contains('playing')) resetLyrics(); }, 700);
+};
+
+seek.addEventListener('pointerdown', () => dragging = true);
+['pointerup', 'pointercancel'].forEach(ev => seek.addEventListener(ev, () => dragging = false));
+seek.addEventListener('input', () => { if (isFinite(audio.duration)) audio.currentTime = seek.value / 1000 * audio.duration; setP(); });
+
+audio.addEventListener('timeupdate', () => { ui(); if (current) syncLyrics(); });
+audio.addEventListener('loadedmetadata', ui);
+audio.addEventListener('play', () => { btnPlay.innerHTML = ICON_PAUSE; document.body.classList.add('is-playing'); });
+audio.addEventListener('pause', () => { btnPlay.innerHTML = ICON_PLAY; document.body.classList.remove('is-playing'); });
+audio.addEventListener('ended', () => {
+    clearTimeout(renderTimer);
+    lyricsEl.classList.add('fading'); stanzaIdx = -1; lastVisible = -1;
+    btnPlay.innerHTML = ICON_PLAY;
+});
+audio.addEventListener('error', () => {
+    if (!current) return;
+    clearTimeout(renderTimer);
+    lyricsEl.classList.remove('fading'); lyricsEl.innerHTML = '';
+    const p = document.createElement('p');
+    p.className = 'lyric-line visible';
+    p.textContent = `No se encontró el audio «${current.src}». Ponlo en la misma carpeta que este archivo.`;
+    lyricsEl.appendChild(p);
+});
+
+// ---------- Menú de canciones ----------
+const items = [];
+SONGS.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.className = 'song-item';
+    li.innerHTML = `<button class="song-row" aria-expanded="false"><span class="song-n">${i + 1}</span><span class="song-name">${s.title}</span><span class="chev">›</span></button>
+      <div class="song-desc"><div><p>${s.description}</p><button class="song-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Reproducir</button></div></div>`;
+    const row = li.querySelector('.song-row');
+    row.onclick = () => {
+        const wasOpen = li.classList.contains('open');
+        items.forEach(x => { x.classList.remove('open'); x.querySelector('.song-row').setAttribute('aria-expanded', 'false'); });
+        if (!wasOpen) { li.classList.add('open'); row.setAttribute('aria-expanded', 'true'); }
+    };
+    li.querySelector('.song-play').onclick = () => { setMenu(false); playSong(s); };
+    items.push(li);
+    $('song-list').appendChild(li);
+});
+
+function setMenu(open) { fab.classList.toggle('open', open); fabBtn.setAttribute('aria-expanded', open); }
+fabBtn.onclick = () => setMenu(!fab.classList.contains('open'));
+document.addEventListener('click', e => { if (!fab.contains(e.target)) setMenu(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+</script>
+</body>
+</html>
